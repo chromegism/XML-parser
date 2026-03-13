@@ -4,6 +4,9 @@
 #include <optional>
 #include <vector>
 #include <iostream>
+#include <map>
+#include <fstream>
+#include <sstream>
 
 namespace XML {
 	struct Cursor {
