@@ -324,7 +324,6 @@ namespace XML {
 				}
 				
 				if (check(TokenType::Text)) {
-					std::cout << "ya" << std::endl;
 					std::string text = at().lexeme.value();
 					(void)next();
 					parent.text += text;
