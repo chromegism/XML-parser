@@ -384,9 +384,6 @@ namespace XML {
 
 	Entry parseString(std::string& str) {
 		auto toks = Lexer(str).lex();
-		for (const auto& tok : toks) {
-			std::cout << tok.lexeme.value() << std::endl;
-		}
 		return Parser(std::move(toks)).parse();
 	}
 }
