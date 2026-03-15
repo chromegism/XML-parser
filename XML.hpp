@@ -45,10 +45,7 @@ namespace XML {
 
 	class Lexer {
 		const std::string* input;
-		Cursor cursor;
-
-	public:
-		Lexer(const std::string& str) : input(&str) {}
+		Cursor cursor;		
 
 		char at() {
 			return input->operator[](cursor.ch);
@@ -88,40 +85,7 @@ namespace XML {
 			}
 		}
 
-		std::vector<Token> lex() {
-			std::vector<Token> tokens;
-
-			bool textMode = false;
-
-			while (!isEOF()) {
-				if (textMode) {
-					Token t = LexText();
-					if (t.lexeme.has_value())
-						tokens.push_back(t);
-				}
-
-				switch (at()) {
-					case '<': tokens.emplace_back(Token::makeToken(TokenType::OpenBrack, "<", cursor)); next(); textMode = false;  break;
-					case '>': tokens.emplace_back(Token::makeToken(TokenType::CloseBrack, ">", cursor)); next(); textMode = true; break;
-					case '=': tokens.emplace_back(Token::makeToken(TokenType::Equal, "=", cursor)); next(); break;
-					case '/': tokens.emplace_back(Token::makeToken(TokenType::FSlash, "/", cursor)); next(); break;
-					case '"': tokens.emplace_back(lexString()); break;
-					default:
-						if (std::isalpha(at())) {
-							tokens.emplace_back(lexIdentifier());
-							break;
-						}
-						else {
-							std::cerr << "Unrecognised character - " << at() << '\n';
-							next();
-						}
-				}
-
-				skipWhitespace();
-			}
-			
-			return tokens;
-		}
+		
 
 		Token LexText() {
 			std::string str;
@@ -174,6 +138,44 @@ namespace XML {
 		Token lexText() {
 			return {};
 		}
+
+	public:
+		Lexer(const std::string& str) : input(&str) {}
+
+		std::vector<Token> lex() {
+			std::vector<Token> tokens;
+
+			bool textMode = false;
+
+			while (!isEOF()) {
+				if (textMode) {
+					Token t = LexText();
+					if (t.lexeme.has_value())
+						tokens.push_back(t);
+				}
+
+				switch (at()) {
+				case '<': tokens.emplace_back(Token::makeToken(TokenType::OpenBrack, "<", cursor)); next(); textMode = false;  break;
+				case '>': tokens.emplace_back(Token::makeToken(TokenType::CloseBrack, ">", cursor)); next(); textMode = true; break;
+				case '=': tokens.emplace_back(Token::makeToken(TokenType::Equal, "=", cursor)); next(); break;
+				case '/': tokens.emplace_back(Token::makeToken(TokenType::FSlash, "/", cursor)); next(); break;
+				case '"': tokens.emplace_back(lexString()); break;
+				default:
+					if (std::isalpha(at())) {
+						tokens.emplace_back(lexIdentifier());
+						break;
+					}
+					else {
+						std::cerr << "Unrecognised character - " << at() << '\n';
+						next();
+					}
+				}
+
+				skipWhitespace();
+			}
+
+			return tokens;
+		}
 	};
 
 
@@ -183,7 +185,7 @@ namespace XML {
 		std::string text;
 		
 		std::vector<Entry> children;
-		bool isSingular;
+		bool isSingular = false;
 
 		std::string to_string(size_t offset = 0) const {
 			std::string flattened;
@@ -230,9 +232,6 @@ namespace XML {
 	class Parser {
 		std::vector<Token> tokens;
 		size_t index = 0;
-
-	public:
-		Parser(std::vector<Token>&& toks) : tokens(std::move(toks)) {}
 
 		Token& at() {
 			return tokens[index];
@@ -329,6 +328,8 @@ namespace XML {
 				if (check(TokenType::Text)) {
 					std::string text = at().lexeme.value();
 					(void)next();
+					if (parent.text.size() != 0)
+						parent.text += '\n';
 					parent.text += text;
 				}
 				else {
@@ -339,6 +340,9 @@ namespace XML {
 
 			return children;
 		}
+
+	public:
+		Parser(std::vector<Token>&& toks) : tokens(std::move(toks)) {}
 
 		Entry parse() {
 			Entry entry;
@@ -373,7 +377,7 @@ namespace XML {
 		}
 	};
 
-	std::string loadFile(const std::string& path) {
+	inline std::string loadFile(const std::string& path) {
 		std::ifstream in(path);
 		if (!in) {
 			throw std::runtime_error("Invalid XML path");
@@ -384,7 +388,7 @@ namespace XML {
 		return ss.str();
 	}
 
-	Entry parseString(std::string& str) {
+	inline Entry parseString(std::string& str) {
 		auto toks = Lexer(str).lex();
 		return Parser(std::move(toks)).parse();
 	}
